@@ -7,7 +7,7 @@ Give it a list of universities. It finds about 51 departments at each one and ad
 member it finds to **one CSV file**, `faculty_emails.csv`. Nobody is added twice. When you add
 more universities later, it scrapes only the new ones.
 
-Author: **Aradhya Singh Bisht** ([@radster22](https://github.com/radster22))
+Author: [@radster22](https://github.com/radster22)
 
 ---
 
