@@ -1,0 +1,33 @@
+[
+  {"university": "Purdue University", "domain": "purdue.edu", "region": "Midwest"},
+
+  {"university": "University of California, Berkeley", "domain": "berkeley.edu", "region": "California"},
+  {"university": "University of California, Los Angeles", "domain": "ucla.edu", "region": "California"},
+  {"university": "University of California, San Diego", "domain": "ucsd.edu", "region": "California"},
+  {"university": "University of California, Davis", "domain": "ucdavis.edu", "region": "California"},
+  {"university": "University of California, Irvine", "domain": "uci.edu", "region": "California"},
+  {"university": "University of California, Santa Barbara", "domain": "ucsb.edu", "region": "California"},
+  {"university": "University of California, Santa Cruz", "domain": "ucsc.edu", "region": "California"},
+  {"university": "University of California, Riverside", "domain": "ucr.edu", "region": "California"},
+  {"university": "Stanford University", "domain": "stanford.edu", "region": "California"},
+  {"university": "California Institute of Technology", "domain": "caltech.edu", "region": "California"},
+  {"university": "University of Southern California", "domain": "usc.edu", "region": "California"},
+
+  {"university": "Massachusetts Institute of Technology", "domain": "mit.edu", "region": "East Coast"},
+  {"university": "Harvard University", "domain": "harvard.edu", "region": "East Coast"},
+  {"university": "Columbia University", "domain": "columbia.edu", "region": "East Coast"},
+  {"university": "New York University", "domain": "nyu.edu", "region": "East Coast"},
+  {"university": "Cornell University", "domain": "cornell.edu", "region": "East Coast"},
+  {"university": "Princeton University", "domain": "princeton.edu", "region": "East Coast"},
+  {"university": "University of Pennsylvania", "domain": "upenn.edu", "region": "East Coast"},
+  {"university": "Yale University", "domain": "yale.edu", "region": "East Coast"},
+  {"university": "Brown University", "domain": "brown.edu", "region": "East Coast"},
+  {"university": "Johns Hopkins University", "domain": "jhu.edu", "region": "East Coast"},
+  {"university": "Boston University", "domain": "bu.edu", "region": "East Coast"},
+  {"university": "Northeastern University", "domain": "northeastern.edu", "region": "East Coast"},
+  {"university": "Rutgers University", "domain": "rutgers.edu", "region": "East Coast"},
+  {"university": "Duke University", "domain": "duke.edu", "region": "East Coast"},
+  {"university": "University of North Carolina at Chapel Hill", "domain": "unc.edu", "region": "East Coast"},
+  {"university": "University of Virginia", "domain": "virginia.edu", "region": "East Coast"},
+  {"university": "Georgetown University", "domain": "georgetown.edu", "region": "East Coast"}
+]

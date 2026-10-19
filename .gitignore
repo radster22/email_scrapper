@@ -1,0 +1,23 @@
+# Scraped data and run state - personal contact data, never commit
+faculty_emails.csv
+faculty_emails.csv.lock
+*.csv
+discovered.json
+
+# Logs and run output
+*.log
+*.out
+
+# Google API credentials
+service_account.json
+*.json.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local tool state
+.claude/
+.codex/
