@@ -4,86 +4,101 @@ Instructions for coding agents (Codex and similar) working in this repo.
 
 ## What this repo does
 
-It builds one master CSV, `faculty_emails.csv`, of university faculty: name, email, title,
-department, university, and the public page each person was found on. It reads only public
-faculty directories, respects `robots.txt`, and waits between requests.
+It builds one local master CSV, `faculty_emails.csv`, of university faculty: name, email,
+title, department, university, and the public page each person was found on. It reads only public
+faculty directories, respects `robots.txt`, and waits between requests. The local CSV is the
+only output.
 
 | File | Role |
 |---|---|
-| `faculty_scraper.py` | Core scraper and CSV writer. Also scrapes the hand-written listings in `departments.json` (University of Maryland). |
+| `universities.json` | **The list of universities to cover.** Add new ones here. |
 | `multi_scraper.py` | Finds and scrapes ~51 departments at every university in `universities.json`. |
-| `universities.json` | The universities to cover: `{"university", "domain", "region"}`. |
-| `status.py` | Prints progress per university and the CSV totals. |
-| `sync_to_sheets.py` | Copies new CSV rows into the Google Sheet (optional). |
+| `faculty_scraper.py` | Core scraper and CSV writer. Also scrapes the hand-written listings in `departments.json` (University of Maryland). |
+| `status.py` | Shows which universities are complete, partial or not started, plus CSV totals. |
 
-Local state that must never be committed: `faculty_emails.csv` (the data), `discovered.json`
-(per-department progress), `*.log`, `*.out`, `service_account.json`. All are in `.gitignore`.
+Local state, never committed: `faculty_emails.csv` (the data), `discovered.json` (progress),
+`*.log` and `*.out`. All are in `.gitignore`.
 
-## How duplicates are prevented (don't break this)
+## How skipping and deduplication work (don't break this)
 
+The same command always works. It does only what's left:
+
+- **Universities:** `discovered.json` records every department attempted per university. Any
+  university with all departments attempted is **skipped entirely**. Repeated entries in
+  `universities.json` (same name or domain) are ignored with a warning.
+- **Departments:** a university that stopped part-way resumes at its first unattempted department.
 - **People:** every row is keyed by lowercased email. Before each append, the scraper takes
-  `faculty_emails.csv.lock`, re-reads the CSV and skips any email already in it. Re-running
-  anything never duplicates a person.
-- **Work:** `discovered.json` records every department attempted per university. A rerun
-  skips those, so a stopped run resumes where it left off.
+  `faculty_emails.csv.lock`, re-reads the CSV and skips any email already in it. A person listed
+  in two departments or universities is stored once.
 
 Never delete or hand-edit `faculty_emails.csv` or `discovered.json` to "start fresh". Never
 write to the CSV except through `FacultyScraper.append_rows`.
 
-## Task 1: Resume the remaining scrape
+## The one command
+
+```
+python -u multi_scraper.py --workers 3 2>&1 | tee -a multi_run.out
+```
+
+Run it in a real terminal, in the foreground, so it isn't killed with the agent's session.
+
+- At the start it logs `Skipping N already-complete universities` and
+  `M universities to scrape: ...`. Check that list is what you expect.
+- `--workers 3` keeps memory down; earlier runs at 6 workers were killed for low memory.
+- Progress is in `multi_scraper.log`. Lines read
+  `<university> <department> <status> found N, added N <url>`.
+- If it stops for any reason, run the same command again. It resumes.
+- It ends with `SUMMARY` lines and `Done. N new people added this run.`
+
+## Task 1: Finish the current list
+
+On a fresh clone there's no CSV or `discovered.json` yet, so this starts from scratch.
+Requires Python 3.9+.
+
+If your session might end before the run finishes (it takes hours), give the user the command
+to run in their own terminal instead, and pick up from step 5 when they're back.
 
 1. Set up once: `python -m pip install -r requirements.txt`
-2. Check state: `python status.py`. It lists the complete, partial and not-started universities.
+2. Run `python status.py` to see what's left.
 3. If `faculty_emails.csv.lock` exists and no scraper is running, delete it (it's stale).
-4. Run the scrape in a real terminal, in the foreground, so it isn't killed with the agent's session:
+4. Run **the one command**.
+5. When it ends, run `python status.py`. Every university should be under *Complete*. If any
+   aren't, run the command again.
+6. Report to the user:
+   - new people added this run, and the CSV total;
+   - unique email count, which must equal the row count;
+   - universities with low yield (fewer than 5 `ok` departments).
 
-   ```
-   python -u multi_scraper.py --workers 3 2>&1 | tee -a multi_run.out
-   ```
+## Task 2: Cover new universities (only when the user asks)
 
-   - `--workers 3` keeps memory down. Earlier runs at 6 workers were killed for low memory.
-   - It takes a few hours. Progress is in `multi_scraper.log`. Lines read
-     `<university> <department> <status> found N, added N <url>`.
-   - If it's interrupted for any reason, run the same command again. It resumes.
-5. When the run ends (log line `Done. N new people added this run.`), run `python status.py`
-   and confirm every university shows `51/51`. If any don't, run step 4 again.
-6. Report to the user: new people added this run, the CSV total, unique email count (must equal
-   the row count), and universities with low yield (fewer than 5 `ok` departments).
-7. If `service_account.json` exists, run `python sync_to_sheets.py` and report its output.
+Don't add universities or start runs on your own. When the user names new universities:
 
-## Task 2: Retry departments that found nobody
+1. Run `python status.py` and read `universities.json`. Drop any requested university that's
+   already listed, compared by name or domain, and tell the user which ones were already covered.
+2. Append the rest to the end of `universities.json`, one per university:
+   `{"university": "Full Official Name", "domain": "example.edu", "region": "..."}`.
+   Use the official name and the main domain without `www.`. Keep the file valid JSON.
+3. Run **the one command**. No `--only` is needed: complete universities are skipped, so only
+   the new ones (and any unfinished ones) are scraped. People already in the CSV are skipped
+   automatically.
+4. Follow steps 5 and 6 of Task 1, and report the results for each new university.
 
-When the user asks to capture missing departments:
+## Task 3: Retry departments that found nobody (only when the user asks)
 
 ```
 python -u multi_scraper.py --workers 3 --retry-failed 2>&1 | tee -a multi_run.out
 ```
 
-This re-attempts only departments whose status isn't `ok`. Already-captured people are skipped
-automatically.
-
-## Task 3: Add new universities (only when the user asks)
-
-Don't add universities or start new runs on your own. When the user names new universities:
-
-1. Append one entry per university to `universities.json`:
-   `{"university": "Full Official Name", "domain": "example.edu", "region": "..."}`.
-   Use the main domain without `www.`. Skip any university already in the file, compared by
-   name and domain.
-2. Run only the new ones:
-
-   ```
-   python -u multi_scraper.py --workers 3 --only "Full Official Name" "Another University" 2>&1 | tee -a multi_run.out
-   ```
-
-3. Follow steps 5 to 7 of Task 1, then report per-university results.
+This re-attempts every department whose status isn't `ok`, including at complete universities.
+People already captured are still skipped.
 
 ## Rules
 
 - Don't lower `REQUEST_DELAY_SECONDS`, raise `--workers` above 6, or bypass the `robots.txt` check.
 - Collect only faculty from public university directory pages. No students, and no logins or
   CAPTCHAs.
-- Don't commit or push data, logs, progress files or credentials.
+- Output goes only to the local `faculty_emails.csv`. Don't upload it anywhere.
+- Don't commit or push data, logs or progress files.
 - When changing scraper code, check the change doesn't alter existing results. Run
   `python faculty_scraper.py --only <a department> --out /tmp/check.csv` before and after, and compare.
 

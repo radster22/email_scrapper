@@ -8,10 +8,6 @@ discovered.json
 *.log
 *.out
 
-# Google API credentials
-service_account.json
-*.json.key
-
 # Python
 __pycache__/
 *.pyc

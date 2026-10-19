@@ -15,7 +15,7 @@ import json
 import os
 from collections import Counter
 
-from multi_scraper import DEPARTMENTS
+from multi_scraper import DEPARTMENTS, load_universities
 
 
 def main():
@@ -25,8 +25,7 @@ def main():
     ap.add_argument("--csv", default="faculty_emails.csv")
     args = ap.parse_args()
 
-    with open(args.universities, encoding="utf-8") as f:
-        universities = [u["university"] for u in json.load(f)]
+    universities = [u["university"] for u in load_universities(args.universities)]
     progress = {}
     if os.path.exists(args.progress):
         with open(args.progress, encoding="utf-8") as f:

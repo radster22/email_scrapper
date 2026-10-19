@@ -11,12 +11,14 @@ this automatically:
 and appends everyone to the same master CSV used by faculty_scraper.py.
 
 Progress is saved to discovered.json after every department, so a stopped run
-can simply be restarted and will skip what's already done. That file also
+can simply be restarted and will skip what's already done. Universities that are
+already complete are skipped entirely, so to cover more universities just add
+them to universities.json and run again. That file also
 records which URL each department's data came from, for checking or for
 copying into departments.json.
 
 Usage:
-    python multi_scraper.py                          # all universities
+    python multi_scraper.py                          # all unfinished universities
     python multi_scraper.py --only "Purdue University"
     python multi_scraper.py --workers 4 --retry-failed
 """
@@ -118,6 +120,26 @@ def load_progress(path):
         with open(path, encoding="utf-8") as f:
             return json.load(f)
     return {}
+
+
+def load_universities(path):
+    """universities.json entries, dropping repeats of a name or domain already listed."""
+    with open(path, encoding="utf-8") as f:
+        entries = json.load(f)
+    seen, unique = set(), []
+    for u in entries:
+        keys = {u["university"].strip().lower(), u["domain"].strip().lower().removeprefix("www.")}
+        if keys & seen:
+            log.warning("Skipping duplicate entry in %s: %s (%s)", path, u["university"], u["domain"])
+            continue
+        seen |= keys
+        unique.append(u)
+    return unique
+
+
+def is_complete(progress, university):
+    """True once every department in DEPARTMENTS has been attempted for this university."""
+    return all(d[0] in progress.get(university, {}) for d in DEPARTMENTS)
 
 
 def save_progress(path, progress):
@@ -351,13 +373,20 @@ def main():
     # Each worker thread handles a different university, so this is ~1 request/second per site.
     fs.REQUEST_DELAY_SECONDS = 1
 
-    with open(args.universities, encoding="utf-8") as f:
-        universities = json.load(f)
+    universities = load_universities(args.universities)
     if args.only:
         wanted = {u.lower() for u in args.only}
         universities = [u for u in universities if u["university"].lower() in wanted]
 
     progress = load_progress(args.progress)
+    if not args.retry_failed:
+        # Universities already covered are skipped, so adding new ones to
+        # universities.json and re-running only scrapes the new (and unfinished) ones.
+        done = [u for u in universities if is_complete(progress, u["university"])]
+        universities = [u for u in universities if not is_complete(progress, u["university"])]
+        log.info("Skipping %d already-complete universities", len(done))
+    log.info("%d universities to scrape: %s", len(universities),
+             ", ".join(u["university"] for u in universities) or "none")
     total = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = {pool.submit(UniversityScraper(u, args.out, progress, args.progress, args.retry_failed).run): u
